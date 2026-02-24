@@ -30,10 +30,6 @@ Stony Brook University
 ## 🔧 Code
 🚀 Code & pretrained checkpoints will be released soon!
 
-
-## Bibtex 
-If you find our work helpful, please leave us a star and cite our paper. Thank you!
-```
 ## 📖 Citation
 
 If you find our work useful, please consider citing:
