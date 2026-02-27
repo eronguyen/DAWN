@@ -5,15 +5,78 @@
   <title>DAWN</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" sizes="32x32" href="media/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --text-primary: #0f172a;
+      --text-secondary: #1e293b;
+      --text-muted: #475569;
+      --accent-blue: #0ea5e9;
+      --accent-teal: #0d9488;
+      --accent-cyan: #06b6d4;
+      --gradient-text: linear-gradient(90deg, var(--accent-blue), var(--accent-teal), var(--accent-cyan));
+      --glass-bg: rgba(255, 255, 255, 0.74);
+      --glass-border: rgba(15, 23, 42, 0.1);
+      --glass-shadow: 0 14px 36px -14px rgba(15, 23, 42, 0.28);
+      --font-main: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f4f4f9;
-      color: #333;
+      font-family: var(--font-main);
+      background: var(--bg-primary);
+      color: var(--text-primary);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      position: relative;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      width: 40vmax;
+      height: 40vmax;
+      border-radius: 50%;
+      filter: blur(72px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.3;
+      animation: ambientDrift 24s ease-in-out infinite;
+    }
+
+    body::before {
+      background: rgba(14, 165, 233, 0.24);
+      top: -14vmax;
+      left: -14vmax;
+    }
+
+    body::after {
+      background: rgba(13, 148, 136, 0.2);
+      bottom: -15vmax;
+      right: -15vmax;
+      animation-delay: -10s;
+    }
+
+    body > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    @keyframes ambientDrift {
+      0% { transform: translate3d(0, 0, 0) scale(1); }
+      50% { transform: translate3d(5vmax, -2vmax, 0) scale(1.06); }
+      100% { transform: translate3d(-3vmax, 3vmax, 0) scale(0.96); }
     }
 
     .video-grid {
@@ -43,51 +106,128 @@
     }
 
     .content-section {
-      padding-top: 2rem;
+      padding: 2.5rem 0 3rem;
     }
 
     .container {
       text-align: center;
-      padding: 2rem 3rem;
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      padding: 2.2rem 2.3rem 2.8rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 24px;
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
       width: 100%;
-      max-width: 95%;
+      max-width: min(1240px, 95%);
       margin: 0 auto;
     }
 
     h1 {
       font-size: 3rem;
       margin-bottom: 0.5rem;
-      color: #4A90E2;
+      font-family: 'Space Grotesk', var(--font-main);
+      letter-spacing: -0.04em;
+      color: var(--text-primary);
     }
 
     p {
       font-size: 1.25rem;
-      color: #666;
+      color: var(--text-muted);
+    }
+
+    .hero-lede {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      margin: 0 auto 1rem;
+      max-width: 74ch;
+      line-height: 1.7;
+    }
+
+    .venue-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.58rem 1.22rem;
+      border-radius: 999px;
+      font-size: 1.14rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      color: #f8fdff;
+      background: linear-gradient(115deg, #0284c7, #0ea5e9 40%, #22d3ee 90%);
+      border: 1px solid rgba(2, 132, 199, 0.42);
+      margin-top: 0.35rem;
+      box-shadow: 0 16px 32px -18px rgba(2, 132, 199, 0.8);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.24);
+      animation: badgePulse 3.2s ease-in-out infinite;
+    }
+
+    @keyframes badgePulse {
+      0%, 100% { transform: translateY(0); box-shadow: 0 16px 32px -18px rgba(2, 132, 199, 0.8); }
+      50% { transform: translateY(-2px); box-shadow: 0 24px 38px -18px rgba(2, 132, 199, 0.9); }
+    }
+
+    .venue-pill::before {
+      content: "Accepted";
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.24);
+      border: 1px solid rgba(255, 255, 255, 0.44);
+    }
+
+    .button-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      justify-content: center;
+      margin: 1.5rem 0 2.2rem;
     }
 
     .authors {
-      margin: 1rem 0;
+      margin: 1rem auto 0.9rem;
       font-size: 1.1rem;
-      color: #444;
+      color: var(--text-secondary);
       line-height: 1.6;
+      max-width: 920px;
+      padding: 0.9rem 1rem;
+      background: rgba(14, 165, 233, 0.05);
+      border: 1px solid rgba(14, 165, 233, 0.16);
+      border-radius: 14px;
     }
     
     .authors a {
-      color: #4A90E2;
+      color: var(--accent-blue);
       text-decoration: none;
+      font-weight: 500;
     }
     
     .authors a:hover {
       text-decoration: underline;
+      color: var(--accent-teal);
     }
 
     .institution {
       font-style: italic;
       margin-top: 0.5rem;
-      color: #555;
+      color: var(--text-muted);
+    }
+
+    .contribution {
+      margin-top: 0.6rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.26rem 0.72rem;
+      border-radius: 999px;
+      background: rgba(13, 148, 136, 0.12);
+      color: #0f766e;
+      border: 1px solid rgba(13, 148, 136, 0.3);
+      font-weight: 600;
+      font-size: 0.86rem;
     }
     
     .abstract, .teaser-figure {
@@ -95,22 +235,40 @@
       max-width: 800px;
       margin: 2rem auto;
     }
+
+    .teaser-figure {
+      max-width: 980px;
+      margin-top: 1.4rem;
+    }
+
+    .teaser-figure img {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 20px 40px -28px rgba(15, 23, 42, 0.65);
+    }
     
     .abstract {
       text-align: justify;
       text-justify: inter-word;
       line-height: 1.8;
+      max-width: 980px;
+      background: rgba(14, 165, 233, 0.04);
+      border: 1px solid rgba(14, 165, 233, 0.16);
+      border-radius: 16px;
+      padding: 1.4rem 1.5rem;
     }
     
     .abstract h2 {
-      color: #4A90E2;
+      color: var(--text-primary);
+      font-family: 'Space Grotesk', var(--font-main);
       margin-bottom: 1rem;
       text-align: center;
     }
     
     .abstract p {
       font-size: 1.1rem;
-      color: #444;
+      color: var(--text-secondary);
     }
     
     .abstract em {
@@ -119,7 +277,7 @@
     }
     
     .langtomo-highlight {
-      background: linear-gradient(90deg, #4A90E2, #2ecc71);
+      background: var(--gradient-text);
       background-clip: text;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -129,6 +287,17 @@
       position: relative;
       display: inline-block;
     }
+
+    .dawn-mark {
+      display: inline-block;
+      padding: 0.36rem 0.95rem;
+      border-radius: 999px;
+      border: 1px solid rgba(14, 165, 233, 0.28);
+      background: linear-gradient(115deg, rgba(14, 165, 233, 0.13), rgba(13, 148, 136, 0.12));
+      box-shadow: 0 14px 28px -20px rgba(14, 165, 233, 0.8);
+      font-size: 1.22rem;
+      font-weight: 700;
+    }
     
     .langtomo-highlight::after {
       content: '';
@@ -137,7 +306,7 @@
       left: 0;
       width: 100%;
       height: 2px;
-      background: linear-gradient(90deg, #4A90E2, #2ecc71);
+      background: var(--gradient-text);
       transform: scaleX(0);
       transform-origin: right;
       transition: transform 0.3s ease;
@@ -205,7 +374,7 @@
     
     .demo-arrow {
       font-size: 1.5rem;
-      color: #4A90E2;
+      color: var(--accent-blue);
       width: 100%;
       text-align: center;
       display: none;
@@ -213,7 +382,7 @@
     
     .demo-horizontal-arrow {
       font-size: 1.5rem;
-      color: #4A90E2;
+      color: var(--accent-blue);
       align-self: center;
       position: relative;
       z-index: 10; /* Ensure arrow appears above demo-item */
@@ -234,9 +403,158 @@
       height: auto;
       border-radius: 8px;
       object-fit: cover;
+      box-shadow: 0 10px 28px -16px rgba(15, 23, 42, 0.5);
+    }
+
+    .paper-button {
+      border-radius: 999px !important;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 10px 24px -16px rgba(15, 23, 42, 0.45) !important;
+    }
+
+    .paper-button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .paper-summary {
+      max-width: 980px;
+      margin: 1.6rem auto 1rem;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+
+    .summary-card {
+      text-align: left;
+      padding: 0.95rem 1rem;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 26px -22px rgba(15, 23, 42, 0.45);
+    }
+
+    .summary-card h3 {
+      margin: 0 0 0.35rem;
+      font-size: 1rem;
+      color: var(--accent-blue);
+    }
+
+    .summary-card p {
+      margin: 0;
+      font-size: 0.93rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .pipeline-strip {
+      max-width: 980px;
+      margin: 1rem auto 0;
+      border-radius: 14px;
+      border: 1px solid rgba(14, 165, 233, 0.22);
+      background: rgba(14, 165, 233, 0.06);
+      padding: 0.9rem 1rem;
+    }
+
+    .pipeline-steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    .pipeline-step {
+      text-align: left;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .pipeline-step strong {
+      display: block;
+      color: var(--text-primary);
+      font-size: 0.92rem;
+    }
+
+    video {
+      border: 1px solid rgba(14, 165, 233, 0.14);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    video:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 30px -22px rgba(14, 165, 233, 0.55);
+    }
+
+    div[style*="background: #fff"],
+    div[style*="background:#fff"] {
+      background: var(--glass-bg) !important;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border) !important;
+      box-shadow: var(--glass-shadow) !important;
+    }
+
+    div[style*="background: #f8f9ff"],
+    div[style*="background:#f8f9ff"] {
+      background: rgba(14, 165, 233, 0.08) !important;
+      border-bottom: 1px solid rgba(14, 165, 233, 0.2) !important;
+    }
+
+    p[style*="color: #4A90E2"] {
+      color: var(--accent-blue) !important;
+    }
+
+    h2[style*="color: #4A90E2"],
+    h3[style*="color: #4A90E2"] {
+      color: var(--text-primary) !important;
+      font-family: 'Space Grotesk', var(--font-main);
+      letter-spacing: -0.02em;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    h2[style*="color: #4A90E2"] {
+      font-size: 2rem !important;
+      margin-bottom: 0.5rem !important;
+    }
+
+    h3[style*="color: #4A90E2"] {
+      font-size: 1.72rem !important;
+      margin-bottom: 1rem !important;
+    }
+
+    p[style*="color: #555"],
+    p[style*="color:#555"] {
+      color: var(--text-secondary) !important;
+    }
+
+    code {
+      background: rgba(15, 23, 42, 0.06) !important;
+      border: 1px solid rgba(15, 23, 42, 0.14) !important;
+      color: var(--text-primary) !important;
     }
     
     @media (max-width: 768px) {
+      h1 {
+        font-size: 2.2rem;
+      }
+
+      .container {
+        padding: 1.5rem 1rem;
+      }
+
+      .paper-summary,
+      .pipeline-steps {
+        grid-template-columns: 1fr;
+      }
+
+      .venue-pill {
+        font-size: 1rem;
+      }
+
+      .venue-pill::before {
+        font-size: 0.62rem;
+      }
+
       .demo-container {
         flex-direction: column;
         align-items: center;
@@ -271,9 +589,9 @@
 
   <div class="content-section">
     <div class="container">
-      <h1>Pixel Motion Diffusion is What We Need for Robot Control</h1>
+      <h1><span class="langtomo-highlight">Pixel Motion Diffusion</span> is What We Need for Robot Control</h1>
 
-      <p><span class="langtomo-highlight">DAWN</span> </p>
+      <h2><span class="langtomo-highlight">DAWN</span></h2>
       <div class="authors">
         <div>
             <a href="https://eronguyen.me" target="_blank">E-Ro Nguyen</a><sup>*</sup>,
@@ -286,9 +604,9 @@
         <div class="contribution"><sup>*</sup>Equal contribution</div>
         
       </div>
-      <p><span class="langtomo-highlight">CVPR 2026</span> </p>
+      <div class="venue-pill">CVPR 2026</div>
       
-      <div class="button-container" style="display: flex; gap: 1rem; justify-content: center; margin: 1.5rem 0 2.5rem;">
+      <div class="button-container">
         <a href="https://arxiv.org/abs/2509.22652" target="_blank" class="paper-button" style="display: inline-flex; align-items: center; background-color: #B31B1B; color: white; padding: 0.6rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
           <span style="background-color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin-right: 8px;">
             <img src="media/paper-icon.svg" alt="paper" style="width: 16px; height: 16px;">
@@ -299,7 +617,7 @@
           <svg style="width: 20px; height: 20px; margin-right: 8px;" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
           </svg>
-          GitHub
+          Code (coming soon)
         </a>
         <a href="videos.html" target="_blank" class="paper-button" style="display: inline-flex; align-items: center; background-color: #4A90E2; color: white; padding: 0.6rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
           <span style="background-color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin-right: 8px;">
@@ -313,6 +631,30 @@
       
       <div class="teaser-figure">
         <img src="media/teaser.png" alt="DAWN Framework" style="max-width: 100%; height: auto; border-radius: 8px;">
+      </div>
+      <p class="hero-lede">TL;DR: A two-stage diffusion framework where the Motion Director predicts dense pixel motion and the Action Expert converts it into executable robot actions.</p>
+      
+      <div class="paper-summary">
+        <article class="summary-card">
+          <h3>Motion Director</h3>
+          <p>Latent diffusion predicts dense pixel motion from observation plus language, giving an explicit motion intent representation.</p>
+        </article>
+        <article class="summary-card">
+          <h3>Action Expert</h3>
+          <p>Diffusion policy conditions on pixel motion, visuals, text, and robot state to generate coherent low-level action chunks.</p>
+        </article>
+        <article class="summary-card">
+          <h3>Data Efficiency</h3>
+          <p>Strong benchmark performance with limited robot data and compact model capacity, while preserving interpretability.</p>
+        </article>
+      </div>
+
+      <div class="pipeline-strip">
+        <div class="pipeline-steps">
+          <div class="pipeline-step"><strong>1. Inputs</strong>Visual observations + language instruction + robot state.</div>
+          <div class="pipeline-step"><strong>2. Predict Motion</strong>Generate dense pixel motion as structured intermediate dynamics.</div>
+          <div class="pipeline-step"><strong>3. Execute Actions</strong>Translate motion to robot control with a diffusion-based action policy.</div>
+        </div>
       </div>
       
       <div class="abstract">

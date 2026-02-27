@@ -5,24 +5,88 @@
   <title>DAWN</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" href="favicon.png" sizes="32x32">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg-primary: #ffffff;
+      --text-primary: #0f172a;
+      --text-secondary: #1e293b;
+      --text-muted: #475569;
+      --accent-blue: #0ea5e9;
+      --accent-teal: #0d9488;
+      --accent-cyan: #06b6d4;
+      --gradient-text: linear-gradient(90deg, var(--accent-blue), var(--accent-teal), var(--accent-cyan));
+      --glass-bg: rgba(255, 255, 255, 0.74);
+      --glass-border: rgba(15, 23, 42, 0.1);
+      --glass-shadow: 0 14px 36px -14px rgba(15, 23, 42, 0.28);
+      --font-main: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f4f4f9;
-      color: #333;
+      font-family: var(--font-main);
+      background: var(--bg-primary);
+      color: var(--text-primary);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      position: relative;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      width: 38vmax;
+      height: 38vmax;
+      border-radius: 50%;
+      filter: blur(70px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.28;
+      animation: ambientDrift 24s ease-in-out infinite;
+    }
+
+    body::before {
+      background: rgba(14, 165, 233, 0.22);
+      top: -14vmax;
+      left: -14vmax;
+    }
+
+    body::after {
+      background: rgba(13, 148, 136, 0.2);
+      bottom: -16vmax;
+      right: -14vmax;
+      animation-delay: -8s;
+    }
+
+    body > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    @keyframes ambientDrift {
+      0% { transform: translate3d(0, 0, 0) scale(1); }
+      50% { transform: translate3d(4vmax, -2vmax, 0) scale(1.06); }
+      100% { transform: translate3d(-3vmax, 3vmax, 0) scale(0.96); }
     }
 
     h1, h2 {
-      color: #4A90E2;
+      color: var(--text-primary);
+      font-family: 'Space Grotesk', var(--font-main);
+      letter-spacing: -0.03em;
     }
 
     p {
       font-size: 1.1rem;
-      color: #666;
+      color: var(--text-muted);
     }
 
     /* Main video grid */
@@ -41,7 +105,7 @@
       height: auto;
       object-fit: cover;
       border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 10px 28px -16px rgba(15, 23, 42, 0.5);
     }
 
     .video-caption {
@@ -59,9 +123,12 @@
     .container {
       text-align: center;
       padding: 2rem 3rem;
-      background: white;
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
       width: 100%;
       max-width: 95%;
       margin: 0 auto;
@@ -106,13 +173,30 @@
     .back-link {
       display: inline-block;
       margin: 1rem 0 2rem;
-      color: #4A90E2;
+      color: var(--accent-blue);
       text-decoration: none;
       font-weight: 500;
     }
 
     .back-link:hover {
       text-decoration: underline;
+      color: var(--accent-teal);
+    }
+
+    div[style*="background: #f8f9ff"],
+    div[style*="background:#f8f9ff"] {
+      background: rgba(14, 165, 233, 0.08) !important;
+      border-bottom: 1px solid rgba(14, 165, 233, 0.2) !important;
+    }
+
+    p[style*="color: #4A90E2"] {
+      color: var(--accent-blue) !important;
+    }
+
+    code {
+      background: rgba(15, 23, 42, 0.06) !important;
+      border: 1px solid rgba(15, 23, 42, 0.14) !important;
+      color: var(--text-primary) !important;
     }
 
     /* Responsive behavior */
@@ -131,6 +215,10 @@
       }
       .video-grid-small {
         grid-template-columns: 1fr;
+      }
+
+      .container {
+        padding: 1.5rem 1rem;
       }
     }
   </style>
