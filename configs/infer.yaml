@@ -1,0 +1,34 @@
+defaults:
+  - model: DAWN_stage2
+  - task: calvin
+  - annotation: calvin
+  - _self_
+
+model:
+  motion_source: predicted
+  
+project: DAWN_infer_calvin
+
+accelerator:
+  mixed_precision: fp16
+  log_with: wandb
+
+seed: 0
+
+weights:
+  model: /home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-04-03_09-56/checkpoints/model_0005000.pth #./outputs/DAWN-action-expert/2026-04-01_22-44/checkpoints/model_0001000.pth #/home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-03-14_23-26/checkpoints/model_final.pth #/home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-03-14_20-00/checkpoints/model_0030000.pth #/home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-03-10_23-24/checkpoints/model_final.pth # /home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-03-10_23-51/checkpoints/model_final.pth
+  # motion_director: /home/ero/Projects/DAWN/outputs/DAWN-motion-director/2026-03-13_14-08/checkpoints/model_final.pth
+
+save_dir: outputs
+inference:
+  save_dir: ${save_dir}/${project}/${now:%Y-%m-%d_%H-%M}
+  num_sequences: 10
+  seq_len: 5
+  multistep: 10
+  dataset: data/dataset_opt_local/task_ABC_D/validation
+  ep_len: 360
+  image_size: 256
+  record_rollout_videos: False
+  record_flow: False
+
+debug: False

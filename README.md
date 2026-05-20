@@ -22,14 +22,36 @@ Stony Brook University
 
 ---
 ## 🔥 Updates
-
+- **[May 2026]** Our code&weights has been released. 
 - **[Feb 2026]** 🎉 Our paper has been accepted to **CVPR 2026**!
 - **[Sep 2025]** 📄 Initial arXiv release.
 ---
 
-## 🔧 Code
-🚀 Code & pretrained checkpoints will be released soon!
+## Installation
+```
+conda create -n dawn python=3.9 -y
+conda activate dawn
 
+pip install uv
+uv pip install -r requirements.txt
+```
+
+## Train
+### Stage 1: Motion Director training
+```
+accelerate launch --num_processes=4 train.py config=stage1
+```
+
+### Stage 2
+```
+accelerate launch --num_processes=4 train.py config=stage2
+```
+
+## Inference
+accelerate launch --num_processes=4 inference.py
+
+## Weights
+Download our checkpoint at [here](https://huggingface.co/datasets/nero1342/DAWN)
 ## 📖 Citation
 
 If you find our work useful, please consider citing:

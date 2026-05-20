@@ -1,0 +1,11 @@
+moviepy==1.0.3
+torch
+torchvision
+diffusers
+transformers
+accelerate
+humanfriendly
+rich
+hydra-core
+omegaconf
+einops

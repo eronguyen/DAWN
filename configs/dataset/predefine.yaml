@@ -1,0 +1,15 @@
+calvin_abc_d_train:
+  _target_: dawn.data.calvin.calvin.CalvinDataset
+  data_path: data/calvin/dataset_opt_local/task_ABC_D
+
+calvin_abc_d_val:
+  _target_: dawn.data.calvin.calvin.CalvinDataset
+  data_path: data/calvin/dataset_opt_local/task_ABC_D
+
+calvin_debug_train:
+  _target_: dawn.data.calvin.calvin.CalvinDataset
+  data_path: data/calvin/dataset_opt_local/calvin_debug_dataset
+
+calvin_D_D_train:
+  _target_: dawn.data.calvin.calvin.CalvinDataset
+  data_path: data/calvin/dataset_opt_local/task_D_D

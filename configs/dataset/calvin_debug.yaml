@@ -1,0 +1,14 @@
+train:  
+  _target_: dawn.data.calvin.calvin.CalvinDataset
+  data_path: data/dataset_opt_local/task_ABC_D
+  split: validation 
+  num_frames: 2
+  data_percent: 10
+
+val:
+  _target_: dawn.data.calvin.calvin.CalvinDataset
+  data_path: data/dataset_opt_local/task_ABC_D
+  split: validation
+  num_frames: 2
+  data_percent: 10
+

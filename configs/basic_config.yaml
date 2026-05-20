@@ -1,0 +1,42 @@
+defaults:
+  - _self_
+  - dataset: calvin
+  - model: LDM_stage1
+
+weights: null
+
+project: DAWN
+desc: None
+debug: false
+
+accelerator:
+  gradient_accumulation_steps: ${trainer.accumulate}
+  mixed_precision: fp16
+  log_with: wandb
+  project_dir: ${trainer.save_dir}
+
+loader:
+  train_batch_size: 32
+  val_batch_size: 32
+  num_workers: 4
+
+save_dir: ./outputs
+resume: false
+
+trainer:
+  accumulate: 1
+  total_steps: 50000
+  log_interval: 20
+  save_interval: 1000
+  val_interval: 500
+  save_dir: '${save_dir}/${project}/${now:%Y-%m-%d_%H-%M-%S}'
+  resume: ${resume}
+  lr_warmup_steps: 10
+  
+optimizer:
+  _target_: 'torch.optim.AdamW'
+  lr: 1e-4
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+
+seed: 0

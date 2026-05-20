@@ -1,0 +1,16 @@
+_target_: dawn.models.arch.dawn.DAWNArch
+
+encoder: 
+  _target_: dawn.models.encoder.Encoder
+  image_pretrained: "facebook/dinov3-convnext-small-pretrain-lvd1689m"
+  text_pretrained: "openai/clip-vit-large-patch14"
+
+motion_director: 
+  _target_: dawn.models.motion_director.ldm.LDM
+  pretrained: timbrooks/instruct-pix2pix # stable-diffusion-v1-5/stable-diffusion-v1-5
+  num_inference_steps: 25
+  conditioning_mode: text+visual
+  flow_rgb_mode: hsv # mean3
+  guidance_scale: 1
+
+action_expert: null

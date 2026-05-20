@@ -1,0 +1,45 @@
+defaults:
+  - _self_
+  - dataset: calvin
+  - model: DAWN_stage2
+
+project: DAWN-action-expert
+save_dir: ./outputs
+resume: false
+desc: edp-hsv-bs128-skip10-lr1e-4-total50k-fixed
+debug: false
+seed: 0
+
+weights: #null 
+  model: ./outputs/DAWN-action-expert/2026-04-03_00-52/checkpoints/model_final.pth #./outputs_new/DAWN-motion-director/hsv-bs16-skip10-lr1e-4-total50k-cont/2026-04-01_14-23/checkpoints/model_0001000.pth #/home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-04-01_01-49/checkpoints/model_0035000.pth
+  # model: /home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-04-01_01-49/checkpoints/model_0035000.pth
+  # motion_director: ./outputs_new/DAWN-motion-director/hsv-bs16-skip10-lr1e-4-total50k-cont/2026-04-01_15-47/checkpoints/model_0015000.pth
+  # action_expert: /home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-04-01_01-49/checkpoints/model_0035000.pth
+
+trainer:
+  accumulate: 1
+  total_steps: 100000
+  log_interval: 20
+  save_interval: 1000
+  val_interval: 500
+  save_dir: '${save_dir}/${project}/${now:%Y-%m-%d_%H-%M}'
+  resume: ${resume}
+  lr_warmup_steps: 10
+
+accelerator: 
+  gradient_accumulation_steps: ${trainer.accumulate}
+  mixed_precision: fp16
+  log_with: wandb
+  project_dir: ${trainer.save_dir}
+
+loader:
+  train_batch_size: 128
+  val_batch_size: 16
+  num_workers: 4
+
+optimizer:
+  _target_: 'torch.optim.AdamW'
+  lr: 1e-4
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+

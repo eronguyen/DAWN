@@ -1,0 +1,16 @@
+args:
+  num_frames: 2
+  min_skip: 10
+  max_skip: 10
+  image_size: 256
+
+train:  
+  _target_: dawn.data.calvin.calvin.CalvinDataset
+  data_path: data/dataset_opt_local/task_ABC_D
+  split: training 
+
+val:
+  _target_: dawn.data.calvin.calvin.CalvinDataset
+  data_path: data/dataset_opt_local/task_ABC_D
+  split: validation
+  # data_percent: 10
