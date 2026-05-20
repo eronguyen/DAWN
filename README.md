@@ -27,14 +27,27 @@ Stony Brook University
 - **[Sep 2025]** 📄 Initial arXiv release.
 ---
 
-## Installation
+## 🛠️ Installation
 ```
 conda create -n dawn python=3.9 -y
 conda activate dawn
-
 pip install uv
+
+# Install calvin as described in (https://github.com/mees/calvin). 
+# Maybe you will occur some render issues and you can refer to calvin repo to solve them.
+git clone --recurse-submodules https://github.com/mees/calvin.git
+
+$ export CALVIN_ROOT=$(pwd)/calvin
+cd $CALVIN_ROOT
+sh install.sh
+
+# Then install dawn requirements
+cd ..
 uv pip install -r requirements.txt
 ```
+
+## 📷 Weights
+Download our checkpoint at [here](https://huggingface.co/datasets/nero1342/DAWN)
 
 ## Train
 ### Stage 1: Motion Director training
@@ -48,10 +61,10 @@ accelerate launch --num_processes=4 train.py config=stage2
 ```
 
 ## Inference
+```
 accelerate launch --num_processes=4 inference.py
+```
 
-## Weights
-Download our checkpoint at [here](https://huggingface.co/datasets/nero1342/DAWN)
 ## 📖 Citation
 
 If you find our work useful, please consider citing:
