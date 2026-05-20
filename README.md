@@ -47,7 +47,7 @@ uv pip install -r requirements.txt
 ```
 
 ## 📷 Weights
-Download our checkpoint at [here](https://huggingface.co/datasets/nero1342/DAWN)
+Download our checkpoint at [here](https://huggingface.co/nero1342/DAWN/tree/main)
 
 ## Train
 ### Stage 1: Motion Director training
