@@ -91,12 +91,6 @@ class DiffusionTransformer(nn.Module):
         else:
             self.lang_emb = nn.Linear(goal_dim, embed_dim)
 
-        if not self.goal_conditioned:
-            for param in self.lang_emb.parameters():
-                param.requires_grad = False
-        #     for param in self.goal_emb.parameters():
-        #         param.requires_grad = False
-
         self.pos_emb = None # nn.Parameter(torch.zeros(1, seq_size, embed_dim))
         print('seq_size:',seq_size)
         self.drop = nn.Dropout(embed_pdrob)
@@ -167,12 +161,7 @@ class DiffusionTransformer(nn.Module):
             )
 
         self.apply(self._init_weights)
-        logger.info(f'Number of encoder parameters: {return_model_parameters_in_millions(self.encoder)}')
-        logger.info(f'Number of decoder parameters: {return_model_parameters_in_millions(self.decoder)}')
-        logger.info(
-            "number of parameters: %e", sum(p.numel() for p in self.parameters())
-        )
-    
+        
     @property
     def device(self):
         return next(self.parameters()).device

@@ -32,6 +32,7 @@ class LDM(BaseMotionDirector):
         self,
         pretrained: str = "stable-diffusion-v1-5/stable-diffusion-v1-5",
         image_size: int = 256,
+        image_dim: int = 768,
         condition_dim: int = 768,
         conditioning_mode: str = "text",
         num_inference_steps: int = 30,
@@ -84,8 +85,7 @@ class LDM(BaseMotionDirector):
 
         self.vae.requires_grad_(False)
         self.flow_estimator.requires_grad_(False)
-        # Project visual embeddings into UNet cross-attention dimension.
-        # self.visual_proj = nn.LazyLinear(condition_dim)
+        self.image_proj = nn.Linear(image_dim, condition_dim)
 
         logger.info(
             (
@@ -263,6 +263,7 @@ class LDM(BaseMotionDirector):
                 for feat in view_image_feat.values():
                     if feat is None:
                         continue
+                    feat = self.image_proj(feat.to(device))
                     if feat.ndim == 2:
                         visual_tokens.append(feat.unsqueeze(1))
                     elif feat.ndim == 3:
@@ -390,6 +391,7 @@ class LDM(BaseMotionDirector):
             "total_loss": loss_mse,
         }
 
+    @torch.inference_mode()
     def forward_eval(
         self,
         batch_data: Dict[str, Any],
@@ -445,6 +447,15 @@ class LDM(BaseMotionDirector):
 
         predicted_flow_rgb = self._decode_vae_latents(latents)
         
+        target_flow_rgb = self.get_target_flow_rgb(batch_data)
+        target_latents = self._to_vae_latents(target_flow_rgb)
+
+        target_flow_raw = self.flow_estimator.flow_converter.rgb_to_flow(target_flow_rgb)
+        predicted_flow_raw = self.flow_estimator.flow_converter.rgb_to_flow(predicted_flow_rgb)
+        # print(predicted_flow_raw.min(), predicted_flow_raw.max())
+        # predicted_flow_raw[predicted_flow_raw.abs() < 1] = 0
+        # predicted_flow_rgb = self.flow_estimator.flow_converter.flow_to_rgb(predicted_flow_raw)
+        
         output = {
             "prompt_embeds": prompt_embeds,
             "condition_latents": condition_latents,
@@ -453,9 +464,6 @@ class LDM(BaseMotionDirector):
             "predicted_pixel_motion": predicted_flow_rgb.unsqueeze(1),
             "predicted_flow_history": latents_history,
         }
-
-        target_flow_rgb = self.get_target_flow_rgb(batch_data)
-        target_latents = self._to_vae_latents(target_flow_rgb)
         output["target_flow_rgb"] = target_flow_rgb
         output["target_flow_latents"] = target_latents
 

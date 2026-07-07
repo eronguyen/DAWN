@@ -5,7 +5,7 @@ from typing import Optional, Sequence, Union
 
 import torch
 from torch import Tensor, nn
-from transformers import CLIPTextModel, CLIPTokenizer, CLIPVisionModel, AutoImageProcessor, AutoModel
+from transformers import CLIPTextModel, CLIPTokenizer, CLIPVisionModel, AutoImageProcessor, AutoModel, AutoTokenizer
 
 import logging
 
@@ -14,15 +14,19 @@ logger = logging.getLogger(__name__)
 class Encoder(nn.Module):
     def __init__(
         self,
-        text_pretrained: str = "openai/clip-vit-large-patch14", 
+        text_pretrained: str = "google-t5/t5-base", 
         image_pretrained: str = "facebook/dinov3-convnext-small-pretrain-lvd1689m", #"openai/clip-vit-large-patch14", #"facebook/dinov2-base",#"facebook/dinov3-convnext-small-pretrain-lvd1689m",
         max_length: int = 77,
     ) -> None:
         super().__init__()
         self.max_length = max_length
 
-        self.tokenizer = CLIPTokenizer.from_pretrained(text_pretrained)
-        self.text_encoder = CLIPTextModel.from_pretrained(text_pretrained)
+        if "clip" in text_pretrained:
+            self.tokenizer = CLIPTokenizer.from_pretrained(text_pretrained)
+            self.text_encoder = CLIPTextModel.from_pretrained(text_pretrained)
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained(text_pretrained)
+            self.text_encoder = AutoModel.from_pretrained(text_pretrained)
 
         self.processor = AutoImageProcessor.from_pretrained(image_pretrained)
         
@@ -31,16 +35,6 @@ class Encoder(nn.Module):
         else:
             self.image_encoder = AutoModel.from_pretrained(image_pretrained)
 
-        # try:
-        #     self.image_encoder = CLIPVisionModel.from_pretrained(pretrained, subfolder="image_encoder")
-        # except Exception:
-        #     self.image_encoder = CLIPVisionModel.from_pretrained("openai/clip-vit-large-patch14")
-
-        text_hidden_size = int(self.text_encoder.config.hidden_size)
-        image_hidden_size = int(self.image_encoder.config.hidden_size) if hasattr(self.image_encoder.config, "hidden_size") else 768
-        self.image_proj = nn.Linear(image_hidden_size, text_hidden_size)
-        self.motion_proj = nn.Linear(image_hidden_size, text_hidden_size)
-        
         self.text_encoder.requires_grad_(False)
         self.image_encoder.requires_grad_(False)
         self.text_encoder.eval()
@@ -71,26 +65,12 @@ class Encoder(nn.Module):
         feat = text_condition[0]
         return feat
 
-    def encode_image(
-        self,
-        pixel_values: Tensor,
-        motion=False,
-    ) -> Tensor:
-        # Resize the input image to 224x224 if necessary
-        # if pixel_values.shape[-2:] != (224, 224):
-        #     pixel_values = torch.nn.functional.interpolate(pixel_values, size=(224, 224), mode="bilinear", align_corners=False)
+    def encode_image(self, pixel_values: Tensor) -> Tensor:
         with torch.inference_mode():
             pixel_values = (pixel_values * 255.0).to(torch.uint8)
             inp = self.processor(images=pixel_values, return_tensors="pt").to(self.device)
-            outputs = self.image_encoder(**inp)#.last_hidden_state
-            # outputs = self.image_encoder(pixel_values=pixel_values.to(self.device))
-            feat = outputs.last_hidden_state
-            
-        if motion:
-            feat = self.motion_proj(feat)
-        else:
-            feat = self.image_proj(feat)
-        return feat
+            outputs = self.image_encoder(**inp)
+            return outputs.last_hidden_state
 
     @torch.inference_mode()
     def forward(

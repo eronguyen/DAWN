@@ -28,19 +28,22 @@ class DroidDataset(BaseDataset):
         num_actions=10,
         min_skip=10,
         max_skip=30,
-        cache_metadata=True,
         observation_type: List[str] = ["rgb_static", "rgb_gripper"],  # Default observation types,
         observation_from: List[str] = ["exterior_image_1_left", "wrist_image_left"],
+        action_type: str = "actions",
+        data_percent: float = 100.0,
+        data_subset_seed: int = 42,
         **kwargs
     ):
-        self.data_path = os.path.join(data_path)
-        super().__init__(data_path, split, image_size, num_frames, num_actions, min_skip, max_skip, cache_metadata, observation_type, observation_from)
+        split_root = os.path.join(data_path, split, "episodes")
+        self.data_path = split_root if os.path.isdir(split_root) else os.path.join(data_path)
+        super().__init__(self.data_path, split, image_size, num_frames, num_actions, min_skip, max_skip, observation_type, observation_from, action_type, data_percent, data_subset_seed)
 
     def _get_transform(self):
         if self.split == "training":
             return A.Compose([
                 A.Resize(self.image_size, self.image_size),
-                A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.5),
+                # A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.5),
                 ToTensorV2(),
             ])
         return A.Compose([

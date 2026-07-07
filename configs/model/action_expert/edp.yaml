@@ -1,0 +1,20 @@
+action_expert: 
+  _target_: dawn.models.action_expert.edp.TransformerDiffusionPolicy
+  num_sampling_steps: 10
+  sigma_data: 0.5
+  sigma_min: 0.001
+  sigma_max: 80
+  noise_scheduler: 'exponential'
+  sigma_sample_density_type: 'loglogistic'
+  sampler_type: 'ddim'
+
+  embed_dim: 768
+  num_latents: 224
+  goal_window_size: 1
+  obs_seq_len: 1
+  act_seq_len: 10
+  proprio_dim: 8
+  action_dim: 7
+  obs_dim: 768
+  goal_dim: 768
+  

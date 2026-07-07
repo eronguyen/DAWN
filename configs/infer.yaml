@@ -16,19 +16,21 @@ accelerator:
 seed: 0
 
 weights:
-  model: /home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-04-03_09-56/checkpoints/model_0005000.pth #./outputs/DAWN-action-expert/2026-04-01_22-44/checkpoints/model_0001000.pth #/home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-03-14_23-26/checkpoints/model_final.pth #/home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-03-14_20-00/checkpoints/model_0030000.pth #/home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-03-10_23-24/checkpoints/model_final.pth # /home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-03-10_23-51/checkpoints/model_final.pth
+  motion_director: /home/colligo/Codes/HiVA/DAWN/outputs/DAWN-motion-director/hsv-bs16-skip10-lr1e-4-total50k-cont/2026-06-17_01-37/checkpoints/model_0052000.pth
+  action_expert: /home/colligo/Codes/HiVA/DAWN/outputs/DAWN-action-expert/ft-edp-hsv-bs128-skip10-lr1e-4-total50k-fixed/2026-06-17_14-37/checkpoints/model_0009000.pth
+  # model: /home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-04-03_09-56/checkpoints/model_0005000.pth #./outputs/DAWN-action-expert/2026-04-01_22-44/checkpoints/model_0001000.pth #/home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-03-14_23-26/checkpoints/model_final.pth #/home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-03-14_20-00/checkpoints/model_0030000.pth #/home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-03-10_23-24/checkpoints/model_final.pth # /home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-03-10_23-51/checkpoints/model_final.pth
   # motion_director: /home/ero/Projects/DAWN/outputs/DAWN-motion-director/2026-03-13_14-08/checkpoints/model_final.pth
 
 save_dir: outputs
 inference:
   save_dir: ${save_dir}/${project}/${now:%Y-%m-%d_%H-%M}
-  num_sequences: 10
+  num_sequences: 1000
   seq_len: 5
   multistep: 10
   dataset: data/dataset_opt_local/task_ABC_D/validation
   ep_len: 360
   image_size: 256
-  record_rollout_videos: False
-  record_flow: False
+  record_rollout_videos: True
+  record_flow: True
 
 debug: False

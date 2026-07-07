@@ -61,10 +61,10 @@ def sample_ddim(
 class TransformerDiffusionPolicy(nn.Module):
     def __init__(
         self, 
-        in_channels=5,
         action_dim=7, 
         obs_dim=768, 
         goal_dim=768, 
+        embed_dim=768,
         num_latents=224, 
         goal_window_size = 1, 
         obs_seq_len=1, 
@@ -90,7 +90,7 @@ class TransformerDiffusionPolicy(nn.Module):
             goal_dim = goal_dim,
             proprio_dim= proprio_dim,
             goal_conditioned = True,
-            embed_dim = 768,
+            embed_dim = embed_dim,
             n_dec_layers = 4,
             n_enc_layers = 4,
             n_obs_token = num_latents,
@@ -116,11 +116,11 @@ class TransformerDiffusionPolicy(nn.Module):
         self.noise_scheduler = noise_scheduler
         self.act_window_size = act_seq_len
         self.action_dim = action_dim
-        self.criterion = torch.nn.functional.mse_loss  # Assuming MSE loss for action classification
+        self.criterion = torch.nn.functional.mse_loss
 
         self.generator = torch.Generator(device=self.device).manual_seed(0)
-
-        # self.visual_proj = nn.Linear(obs_dim, 768)
+        self.image_proj = nn.Linear(obs_dim, embed_dim)
+        self.motion_proj = nn.Linear(obs_dim, embed_dim)
 
     @property
     def device(self):
@@ -135,12 +135,11 @@ class TransformerDiffusionPolicy(nn.Module):
         feats = []
         if "view_image_feat" in encoder_outputs:
             for view_name, feat in encoder_outputs["view_image_feat"].items():
-                feats.append(feat)
-        # if "text_feat" in encoder_outputs:
-        #     feats.append(encoder_outputs["text_feat"])
+                feats.append(self.image_proj(feat))
         if "pixel_motion_feat" in encoder_outputs:
-            feats.append(encoder_outputs["pixel_motion_feat"])
-        
+            feats.append(self.motion_proj(encoder_outputs["pixel_motion_feat"]))
+        else:
+            logger.warning("No pixel_motion_feat is detected in Action Expert!!")
         visual_feat = torch.cat(feats, dim=1)  # [B, N, C]
         # visual_feat = self.visual_proj(visual_feat)
     
@@ -339,6 +338,8 @@ class TransformerDiffusionPolicy(nn.Module):
         c_in = 1 / (sigma ** 2 + self.sigma_data ** 2) ** 0.5
         return c_skip, c_out, c_in
 
+    
+    @torch.inference_mode()
     def eval_forward(
         self, 
         perceptual_emb: torch.Tensor,

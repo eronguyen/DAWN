@@ -340,7 +340,7 @@ def rollout(env, model, task_oracle, cfg, idx, subtask, lang_embeddings, val_ann
         current_task_info = task_oracle.get_task_info_for_set(start_info, current_info, {subtask})
         if len(current_task_info) > 0:
             model = reset(model)
-            logger.info(f"Average step time: {total_time / (step + 1):.2f}s")
+            # logger.info(f"Average step time: {total_time / (step + 1):.2f}s")
             progress.update(bar, advance=cfg.inference.ep_len - step)
             progress.remove_task(bar)
 

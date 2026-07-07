@@ -4,19 +4,23 @@ defaults:
   - model: DAWN_stage1
 
 project: DAWN-motion-director
-save_dir: ./outputs_new
+save_dir: ./outputs
 resume: false
 desc: hsv-bs16-skip10-lr1e-4-total50k-cont
 debug: false
 seed: 0
 
 weights: #null 
-  model: /home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-04-01_01-49/checkpoints/model_0035000.pth
-  motion_director: /home/ero/Projects/DAWN/outputs/DAWN-motion-director/2026-03-13_14-08/checkpoints/model_final.pth
+  model: null
+  motion_director: /home/colligo/Codes/HiVA/DAWN/outputs/DAWN-motion-director/hsv-bs16-skip10-lr1e-4-total50k-cont/2026-06-25_14-45/checkpoints/model_0031000.pth
+  # /home/colligo/Codes/HiVA/DAWN/outputs/DAWN-motion-director/hsv-bs16-skip10-lr1e-4-total50k-cont/2026-06-17_01-37/checkpoints/model_0052000.pth
+  
+  # model: /home/ero/Projects/DAWN/outputs/DAWN-action-expert/2026-04-01_01-49/checkpoints/model_0035000.pth
+  # motion_director: /home/ero/Projects/DAWN/outputs/DAWN-motion-director/2026-03-13_14-08/checkpoints/model_final.pth
   
 trainer:
   accumulate: 1
-  total_steps: 50000
+  total_steps: 100000
   log_interval: 20
   save_interval: 1000
   val_interval: 500
@@ -31,13 +35,13 @@ accelerator:
   project_dir: ${trainer.save_dir}
 
 loader:
-  train_batch_size: 16
-  val_batch_size: 16
+  train_batch_size: 128
+  val_batch_size: 128
   num_workers: 4
 
 optimizer:
   _target_: 'torch.optim.AdamW'
-  lr: 1e-5
+  lr: 1e-4
   weight_decay: 0.01
   betas: [0.9, 0.999]
 

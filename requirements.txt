@@ -9,3 +9,12 @@ rich
 hydra-core
 omegaconf
 einops
+kornia
+torchsde
+torchdiffeq
+opencv-python
+albumentationsx
+fvcore
+matplotlib
+wandb
+pytorch_lightning

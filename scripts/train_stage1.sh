@@ -1,0 +1,1 @@
+accelerate launch train.py config=stage1

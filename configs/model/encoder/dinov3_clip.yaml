@@ -1,0 +1,5 @@
+encoder: 
+  _target_: dawn.models.encoder.Encoder
+  image_pretrained: "facebook/dinov3-convnext-small-pretrain-lvd1689m"
+  text_pretrained: "openai/clip-vit-large-patch14"
+  

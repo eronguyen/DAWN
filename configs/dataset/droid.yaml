@@ -1,0 +1,16 @@
+args:
+  num_frames: 2
+  min_skip: 10
+  max_skip: 30
+  image_size: 256
+
+train:  
+  _target_: dawn.data.droid.droid.DroidDataset
+  data_path: /home/colligo/Codes/localssd/droid-dawn
+  split: training 
+
+val:
+  _target_: dawn.data.droid.droid.DroidDataset
+  data_path: /home/colligo/Codes/localssd/droid-dawn
+  split: validation
+  # data_percent: 10

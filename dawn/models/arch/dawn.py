@@ -24,8 +24,6 @@ class DAWNArch(nn.Module):
     - an `ActionExpert`
     """
 
-    SUPPORTED_MODES = ("motion", "action", "joint")
-    SUPPORTED_STAGES = (1, 2)
     SUPPORTED_MOTION_SOURCES = ("predicted", "estimator")
 
     def __init__(
@@ -47,41 +45,57 @@ class DAWNArch(nn.Module):
         self.motion_source = motion_source
         self.use_predicted_motion_eval = use_predicted_motion_eval
 
-        if self.motion_source == "estimator":
+        if self.stage > 1:
             self.motion_director.requires_grad_(False)
 
-        if self.stage not in self.SUPPORTED_STAGES:
-            raise ValueError(f"Invalid stage: {self.stage}. Supported stages: {self.SUPPORTED_STAGES}.")
         if self.motion_source not in self.SUPPORTED_MOTION_SOURCES:
             raise ValueError(
                 f"Invalid motion_source: {self.motion_source}. "
                 f"Supported: {self.SUPPORTED_MOTION_SOURCES}."
             )
 
-        # if self.stage == 2:
-        #     self.encoder.image_proj.requires_grad_(False) # Freeze the projector
-        # self.encoder.requires_grad_(True)
-        
         logger.info("Model parameter summary:\n%s", self.module_parameter_table())
 
     def from_pretrained(self, weights) -> None:
         if "model" in weights and weights["model"] is not None:
             logger.info("Loading model weights from %s", weights["model"])
             ckpt = torch.load(weights["model"], map_location="cpu")
+            
+            extra = {}
+            for k, v in ckpt.items():
+                if k.startswith("encoder.image_proj") or k.startswith("encoder.motion"):
+                    extra[k.replace("encoder.","motion_director.")] = v
+                    extra[k.replace("encoder.","action_expert.")] = v
+            
+            ckpt.update(extra)
             logger.info(self.load_state_dict(ckpt, strict=False))
-        
+            
         if "motion_director" in weights and self.motion_director is not None and weights["motion_director"] is not None:
             logger.info("Loading motion_director weights from %s", weights["motion_director"])
             ckpt = torch.load(weights["motion_director"], map_location="cpu")
+            extra = {}
+            for k, v in ckpt.items():
+                if k.startswith("encoder.image_proj"):
+                    extra[k.replace("encoder.","")] = v
+                    
             ckpt = {k.replace("motion_director.","") : v for k, v in ckpt.items() if k.startswith("motion_director.")}
+            ckpt.update(extra)
+            
             logger.info(self.motion_director.load_state_dict(ckpt, strict=False))
         
         if "action_expert" in weights and self.action_expert is not None and weights["action_expert"] is not None:
             logger.info("Loading action_expert weights from %s", weights["action_expert"])
             ckpt = torch.load(weights["action_expert"], map_location="cpu")
+            extra = {}
+            for k, v in ckpt.items():
+                if k.startswith("encoder.image_proj") or k.startswith("encoder.motion"):
+                    extra[k.replace("encoder.","")] = v
+            
             ckpt = {k.replace("action_expert.","") : v for k, v in ckpt.items() if k.startswith("action_expert.")}
+            ckpt.update(extra)
+            
             logger.info(self.action_expert.load_state_dict(ckpt, strict=False))
-        
+
     def encode_batch(self, batch_data: Dict[str, Any]) -> Dict[str, Any]:
         if self.encoder is None:
             return {}
@@ -91,7 +105,6 @@ class DAWNArch(nn.Module):
         image = batch_data.get("image")
         text = batch_data.get("language", batch_data.get("text"))
         text_feat = self.encoder.encode_text(text) if text is not None else None
-
         view_image_feat: Dict[str, Any] = {}
 
         for view_name, view_tensor in image.items():
@@ -137,7 +150,8 @@ class DAWNArch(nn.Module):
         if self.motion_source == "predicted" or (self.use_predicted_motion_eval and not self.training):
             if self.motion_director is None:
                 raise ValueError("motion_source='predicted' requires `motion_director`.")
-            motion_outputs = self.motion_director(
+            
+            motion_outputs = self.motion_director.forward_eval(
                 batch_data,
                 encoder_outputs=outputs["encoder"],
                 **kwargs,
@@ -157,18 +171,16 @@ class DAWNArch(nn.Module):
         else:
             raise ValueError(f"Unsupported motion_source: {self.motion_source}")
 
-        pixel_motion_feat = self.encoder.encode_image(pixel_motion, motion=True)
+        pixel_motion_feat = self.encoder.encode_image(pixel_motion)
         
 
         action_encoder_outputs = dict(outputs["encoder"])
-        # action_encoder_outputs["pixel_motion"] = pixel_motion
-        # action_encoder_outputs["pixel_motion_feat"] = pixel_motion_feat
+        action_encoder_outputs["pixel_motion_feat"] = pixel_motion_feat
 
         outputs["motion"] = motion_outputs
         outputs["action"] = self.action_expert(
             batch_data,
             encoder_outputs=action_encoder_outputs,
-            pixel_motion=pixel_motion,
             motion_outputs=motion_outputs,
             **kwargs,
         )
