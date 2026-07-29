@@ -13,7 +13,7 @@ kornia
 torchsde
 torchdiffeq
 opencv-python
-albumentationsx
+albumentationsx==2.3.7
 fvcore
 matplotlib
 wandb

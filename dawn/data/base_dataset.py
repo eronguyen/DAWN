@@ -71,7 +71,7 @@ class BaseDataset(Dataset):
             return A.Compose(
                 [
                     A.Resize(self.image_size, self.image_size),
-                    A.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1, p=0.5),
+                    A.ColorJitter(brightness_range=(0.9, 1.1), contrast_range=(0.9, 1.1), saturation_range=(0.9, 1.1), hue_range=(-0.1, 0.1), p=0.5),
                     ToTensorV2(),
                 ]
             )
