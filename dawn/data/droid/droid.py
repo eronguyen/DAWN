@@ -43,7 +43,7 @@ class DroidDataset(BaseDataset):
         if self.split == "training":
             return A.Compose([
                 A.Resize(self.image_size, self.image_size),
-                # A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.5),
+                # A.ColorJitter(brightness_range=(0.8, 1.2), contrast_range=(0.8, 1.2), saturation_range=(0.8, 1.2), hue_range=(-0.1, 0.1), p=0.5),
                 ToTensorV2(),
             ])
         return A.Compose([
