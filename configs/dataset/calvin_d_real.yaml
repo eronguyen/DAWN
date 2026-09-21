@@ -7,10 +7,11 @@ args:
 # Domain-adaptation fine-tune on real CALVIN D data (fywang/calvin-task-D-D-lerobot,
 # converted via dawn/data/calvin/convert_lerobot.py), 6135 episodes. Unlike
 # calvin_d_finetune.yaml (which uses the task_ABC_D "validation" split as a stand-in
-# for D), this is the actual D environment. The source dataset ships a single split,
-# so train and val both point at the same "training" episodes here too — val is a
-# same-distribution monitoring signal, not a true held-out check. Use the real CALVIN
-# rollout benchmark to judge actual generalization impact.
+# for D), this is the actual D environment. The source dataset ships a single split
+# with no held-out subset, so val instead reuses task_ABC_D's "validation" split
+# (1087 episodes) — same D environment, but episodes disjoint from the task_D_D
+# training data, so this is a real held-out check rather than same-distribution
+# monitoring.
 train:
   _target_: dawn.data.calvin.calvin.CalvinDataset
   data_path: data/dataset_opt_local/task_D_D
@@ -18,5 +19,5 @@ train:
 
 val:
   _target_: dawn.data.calvin.calvin.CalvinDataset
-  data_path: data/dataset_opt_local/task_D_D
-  split: training
+  data_path: data/dataset_opt_local/task_ABC_D
+  split: validation
