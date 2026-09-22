@@ -5,6 +5,7 @@ import logging
 import os
 import random
 from typing import Any, Dict, List, Optional
+import copy
 
 import albumentations as A
 import numpy as np
@@ -152,7 +153,16 @@ class BaseDataset(Dataset):
         ]
         selected_episode_files = self._sample_episode_files(episode_files)
         episodes = [self._load_single_episode(f) for f in tqdm(selected_episode_files, desc="Loading episodes")]
-        return episodes
+        
+        return_dict = []
+        for episode in episodes:
+            return_dict.extend([(frame_idx, episode) for frame_idx in range(episode["metadata"]["length"] - 1)])
+        
+        random.seed(self.data_subset_seed)
+        random.shuffle(return_dict)
+
+        logger.info(f"Loaded {len(return_dict)} frames from {len(episodes)} episodes.")
+        return return_dict
 
     def __len__(self):
         return len(self.episodes)
@@ -171,8 +181,7 @@ class BaseDataset(Dataset):
         return frames, skips
 
     def get_action(self, episode_metadata, frame_idx):
-        offset = 1 if self.action_type == "rel_actions" else 0
-        return torch.tensor(episode_metadata[self.action_type][offset + frame_idx : offset + frame_idx + self.num_actions])
+        return torch.tensor(episode_metadata[self.action_type][frame_idx : frame_idx + self.num_actions])
 
     def get_extra_data(self, episode_metadata, frame_idx) -> Dict[str, Any]:
         # Extension hook for subclasses (e.g., robot state in CALVIN).
@@ -183,7 +192,8 @@ class BaseDataset(Dataset):
             if hasattr(self, "r_map") and hasattr(self, "annos"):
                 if "task" not in metadata:
                     metadata["task"] = self.r_map[metadata["language"]]
-                return random.choice(self.annos[metadata["task"]])
+                return self.annos[metadata["task"]][-1]
+                # return random.choice(self.annos[metadata["task"]])
         except Exception:
             pass
 
@@ -210,11 +220,12 @@ class BaseDataset(Dataset):
         return np.stack([self.read_image(obs_files[i]) for i in frames], axis=0)
 
     def __getitem__(self, idx):
-        episode = self.episodes[idx]
+        first_frame, episode2 = self.episodes[idx]
+        episode = copy.deepcopy(episode2)
         metadata = episode["metadata"]
 
         language = self._sample_language(metadata)
-        frames, skips = self.get_frame_indices(metadata, first_frame=None)
+        frames, skips = self.get_frame_indices(metadata, first_frame=first_frame)
         frame_idx = frames[-2] if len(frames) >= 2 else frames[-1]
 
         data = {
