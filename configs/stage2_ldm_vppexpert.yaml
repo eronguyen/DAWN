@@ -1,0 +1,50 @@
+defaults:
+  - _self_
+  - dataset: calvin
+  - model: DAWN_stage2_ldm_vppexpert
+
+project: DAWN-action-expert-ldm-vppexpert
+save_dir: ./outputs
+resume: false
+desc: ldm-vppexpert-bs128-skip10-lr1e-4-total100k
+debug: false
+seed: 0
+
+weights:
+  model: null
+  # Frozen, already-trained pixel-motion director (same one used by the edp2
+  # run at outputs.../edp2-hsv-bs128.../2026-09-12_18-24 -- DAWNArch freezes
+  # motion_director automatically for stage>1).
+  motion_director: /home/colligo/Codes/localssd/DAWN/2026-09-12_18-24/checkpoints/model_0041000.pth
+  # 98.6% of VPP's transformer body + all of language_goal, transferred via
+  # scripts/convert_vpp_pixel_motion_expert.py (tok_emb is randomly
+  # initialized since its input dim depends on the encoder, not VPP's
+  # Video_Former output).
+  action_expert: /mnt/localssd/.cache/huggingface/dawn_vpp/dp_calvin_pixel_motion_expert.pth
+
+trainer:
+  accumulate: 1
+  total_steps: 100000
+  log_interval: 20
+  save_interval: 1000
+  val_interval: 500
+  save_dir: '${save_dir}/${project}/${desc}/${now:%Y-%m-%d_%H-%M}'
+  resume: ${resume}
+  lr_warmup_steps: 10
+
+accelerator:
+  gradient_accumulation_steps: ${trainer.accumulate}
+  mixed_precision: fp16
+  log_with: wandb
+  project_dir: ${trainer.save_dir}
+
+loader:
+  train_batch_size: 128
+  val_batch_size: 128
+  num_workers: 1
+
+optimizer:
+  _target_: 'torch.optim.AdamW'
+  lr: 1e-4
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
