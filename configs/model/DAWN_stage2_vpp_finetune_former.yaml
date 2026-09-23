@@ -1,0 +1,64 @@
+# Same pretrained VPP pipeline as DAWN_stage2_vpp.yaml (SVDMotionExtractor +
+# Video_Former + DiffusionTransformer, zero-shot rollout already verified at
+# 4.7/5 on a CALVIN smoke test), but with action_expert.freeze_inner_model=true:
+# only Video_Former_3D is trainable. DiffusionTransformer (the action-
+# generation core) and LangClip stay frozen and in eval mode (no dropout)
+# throughout, so this can never regress below the proven zero-shot baseline --
+# training can only ever adapt the perception-to-token resampler, with far
+# fewer trainable params than the LDM+VPPexpert hybrid (which has to relearn
+# tok_emb and fine-tunes the full 21.6M-param transformer body).
+_target_: dawn.models.arch.dawn.DAWNArch
+
+stage: 2
+motion_source: predicted  # unused: SVDMotionExtractor is frozen, forward_train == forward_eval
+use_predicted_motion_eval: false
+
+encoder:
+  _target_: dawn.models.encoder.Encoder
+  image_pretrained: "facebook/dinov3-convnext-small-pretrain-lvd1689m"
+  text_pretrained: "openai/clip-vit-large-patch14"
+
+motion_director:
+  _target_: dawn.models.motion_director.svd_extractor.SVDMotionExtractor
+  pretrained_model_path: /mnt/localssd/.cache/huggingface/hub/models--yjguo--svd-robot-calvin-ft/snapshots/d7178b195d5f934f5d5b268e25fdf011f16b7bfb
+  text_encoder_path: /mnt/localssd/.cache/huggingface/hub/models--openai--clip-vit-base-patch32/snapshots/3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268
+  timestep: 20
+  extract_layer_idx: 1
+  use_all_layer: true
+  max_length: 20
+  position_encoding: false  # must match checkpoint's own args.model.use_position_encoding -- see DAWN_stage2_vpp.yaml's note
+  num_time_embeds: 16
+  eval_dtype: true
+
+action_expert:
+  _target_: dawn.models.action_expert.vpp_edp.VPPCompatiblePolicy
+  freeze_inner_model: true
+  action_dim: 7
+  latent_dim: 384
+  goal_dim: 512
+  num_latents: 224
+  num_frame: 16
+  Former_depth: 6
+  Former_heads: 8
+  Former_dim_head: 64
+  Former_num_time_embeds: 16
+  condition_dim: 2560
+  use_Former_temporal: true
+  goal_window_size: 1
+  obs_seq_len: 1
+  act_seq_len: 10
+  proprio_dim: 8
+  noise_scheduler: 'exponential'
+  sigma_sample_density_type: 'loglogistic'
+  sampler_type: 'ddim'
+  num_sampling_steps: 10
+  sigma_data: 0.5
+  # Unlike DAWN_stage2_vpp.yaml (zero-training, eval-only): this config is used
+  # for *training*, so sigma_min stays at VPP's own trained value (matches the
+  # noise-level distribution the frozen DiffusionTransformer was calibrated
+  # for). Apply ++model.action_expert.sigma_min=1.0 only at eval/rollout time,
+  # same as VPP's own eval-only override.
+  sigma_min: 0.001
+  sigma_max: 80
+  lang_model_name: 'ViT-B/32'
+  freeze_lang_encoder: true

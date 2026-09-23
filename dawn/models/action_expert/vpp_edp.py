@@ -82,6 +82,7 @@ class VPPCompatiblePolicy(BaseActionExpert):
         freeze_lang_encoder: bool = True,
         use_video_former: bool = True,
         obs_dim: Optional[int] = None,
+        freeze_inner_model: bool = False,
     ) -> None:
         super().__init__()
         logger.info("Initializing %s.", __class__.__name__)
@@ -131,6 +132,16 @@ class VPPCompatiblePolicy(BaseActionExpert):
             use_mlp_goal=True,
         )
 
+        # Keep VPP's own action-generation core exactly as pretrained -- only
+        # Video_Former adapts to whatever new perception features feed it.
+        # This avoids the "relearn from a fresh tok_emb" cost of
+        # use_video_former=False, and can never regress the already-proven
+        # zero-shot rollout quality of the frozen transformer.
+        self.freeze_inner_model = freeze_inner_model
+        if freeze_inner_model:
+            self.model.inner_model.requires_grad_(False)
+            self.model.inner_model.eval()
+
         self.sigma_data = sigma_data
         self.sigma_sample_density_type = sigma_sample_density_type
         self.sigma_min = sigma_min
@@ -145,6 +156,17 @@ class VPPCompatiblePolicy(BaseActionExpert):
     @property
     def device(self):
         return next(self.parameters()).device
+
+    def train(self, mode: bool = True):
+        """Keep the frozen inner_model in eval mode (no dropout) even when the
+        parent (DAWNArch) recursively calls .train() -- otherwise its
+        attn/resid/mlp dropout (0.3/0.1/0.05) would inject noise into an
+        otherwise-frozen reference computation, destabilizing Video_Former's
+        gradients for no benefit."""
+        super().train(mode)
+        if self.freeze_inner_model:
+            self.model.inner_model.eval()
+        return self
 
     @staticmethod
     def _language_list(batch_data: Dict[str, Any], batch_size: int) -> list:
