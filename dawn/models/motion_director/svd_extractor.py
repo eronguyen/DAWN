@@ -42,7 +42,7 @@ class SVDMotionExtractor(BaseMotionDirector):
         extract_layer_idx: int = 1,
         use_all_layer: bool = True,
         max_length: int = 20,
-        position_encoding: bool = True,
+        position_encoding: bool = False,
         num_time_embeds: int = 16,
         eval_dtype: bool = True,
         input_type: str = "rgb_static",

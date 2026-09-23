@@ -22,7 +22,16 @@ motion_director:
   extract_layer_idx: 1
   use_all_layer: true
   max_length: 20
-  position_encoding: true
+  # NOTE: this must match the checkpoint's own args.model.use_position_encoding
+  # (policy_conf/calvin_evaluate_all.yaml sets it to False) -- setting this to
+  # True instead produced a real, measurable divergence in the Video_Former's
+  # output (max abs diff ~2.7 vs a std of ~0.84) even though every individual
+  # ported module (Diffusion_feature_extractor, Video_Former_3D) is bit-for-bit
+  # identical to VPP's own when fed the same inputs; that ~2.7 divergence was
+  # the actual root cause of the CALVIN smoke-test regression (0.5-0.8/5
+  # instead of the ~4-5/5 both native VPP and a DAWN-harness+real-VPP-model
+  # hybrid test achieved on the same checkpoint).
+  position_encoding: false
   num_time_embeds: 16
   eval_dtype: true
 
@@ -48,7 +57,14 @@ action_expert:
   sampler_type: 'ddim'
   num_sampling_steps: 10
   sigma_data: 0.5
-  sigma_min: 0.001
+  # NOTE: VPP's own checkpoint was *trained* with sigma_min=0.001, but its own
+  # eval script (policy_conf/calvin_evaluate_all.yaml + calvin_evaluate_multi.py's
+  # `main()`) deliberately overrides sigma_min to 1.0 at inference time -- this
+  # is not a training hyperparameter left over by mistake, it measurably matters:
+  # native VPP with sigma_min=1.0 scored avg_seq_len=4.9/5 on a 10-sequence
+  # smoke test, DAWNArch with sigma_min=0.001 (the trained value) scored 0.8/5
+  # on the same checkpoint/sequences.
+  sigma_min: 1.0
   sigma_max: 80
   lang_model_name: 'ViT-B/32'
   freeze_lang_encoder: true
