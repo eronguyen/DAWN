@@ -14,6 +14,7 @@ Usage
 from __future__ import annotations
 
 import argparse
+import csv
 import os
 import sys
 
@@ -87,8 +88,12 @@ def main() -> None:
             dawn_out = dawn_model(batch)
             vpp_out = vpp_model(batch)
 
-        dawn_pred = dawn_out["action"]["logits"][0, 0]
-        vpp_pred = vpp_out["action"]["logits"][0, 0]
+        dawn_chunk = dawn_out["action"]["logits"][0]  # (10, 7)
+        vpp_chunk = vpp_out["action"]["logits"][0]  # (10, 7)
+        gt_chunk = batch["action"][0]  # (10, 7)
+
+        dawn_pred = dawn_chunk[0]
+        vpp_pred = vpp_chunk[0]
 
         def fmt(t):
             return "[" + ", ".join(f"{x:+.3f}" for x in t.tolist()) + "]"
@@ -103,6 +108,30 @@ def main() -> None:
         print(f"GT       : {fmt(gt)}")
         print(f"DAWN     : {fmt(dawn_pred)}  |  L1: {dawn_l1:.4f}  MSE: {dawn_mse:.4f}")
         print(f"VPP      : {fmt(vpp_pred)}  |  L1: {vpp_l1:.4f}  MSE: {vpp_mse:.4f}")
+
+        # Save the full 10-step predicted action chunk, one row per step, with
+        # DAWN's 7 action dims followed by VPP's 7 action dims per line (plus
+        # ground truth appended for reference) so every dim can be diffed by eye.
+        dims = ["x", "y", "z", "rx", "ry", "rz", "gripper"]
+        header = (
+            ["step"]
+            + [f"dawn_{d}" for d in dims]
+            + [f"vpp_{d}" for d in dims]
+            + [f"gt_{d}" for d in dims]
+        )
+        csv_path = os.path.join(args.out_dir, f"sample_{idx}_actions.csv")
+        with open(csv_path, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(header)
+            for step in range(dawn_chunk.shape[0]):
+                row = (
+                    [step]
+                    + [f"{x:.4f}" for x in dawn_chunk[step].tolist()]
+                    + [f"{x:.4f}" for x in vpp_chunk[step].tolist()]
+                    + [f"{x:.4f}" for x in gt_chunk[step].tolist()]
+                )
+                writer.writerow(row)
+        print(f"Saved action-by-action CSV (10 steps x dawn[7]+vpp[7]+gt[7]): {csv_path}")
 
         if i == 0:
             # Save a visual: input frame + DAWN's predicted motion (VPP has no
