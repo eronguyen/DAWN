@@ -12,6 +12,18 @@ identical to VPP's own `model.inner_model`) at VPP's dims
 The diffusion-loss / DDIM-sampling machinery is shared with `edp2.py` rather
 than reimplemented (`sample_ddim`, `append_dims`, `dawn.models.action_expert
 .utils`), since the two are the same EDM/k-diffusion formulation.
+
+Set `use_video_former=False` to instead pair this action expert with DAWN's
+own pixel-motion `motion_director` (e.g. `LDM`): `DAWNArch.forward()` already
+computes `pixel_motion_feat = encoder.encode_image(pixel_motion)` (shape
+`(B, N, encoder_dim)`, e.g. `(B, 50, 768)` for the DINOv3-ConvNeXt-Small
+encoder) whenever `motion_director` exposes `get_target_flow_rgb` (LDM does);
+in that mode `Video_Former` is never constructed and `pixel_motion_feat` is
+fed to `model.inner_model` directly as `state_images`, with `obs_dim` set to
+match the encoder's feature dim instead of `latent_dim`. `DiffusionTransformer`
+disables positional embeddings internally (`pos_emb=None`, dead code path),
+so the token *count* need not match `n_obs_token`/`num_latents` -- only the
+per-token feature dimension (`obs_dim`) must match `tok_emb`'s input size.
 """
 
 from __future__ import annotations
@@ -68,27 +80,38 @@ class VPPCompatiblePolicy(BaseActionExpert):
         sigma_max: float = 80,
         lang_model_name: str = "ViT-B/32",
         freeze_lang_encoder: bool = True,
+        use_video_former: bool = True,
+        obs_dim: Optional[int] = None,
     ) -> None:
         super().__init__()
         logger.info("Initializing %s.", __class__.__name__)
 
-        self.Video_Former = Video_Former_3D(
-            dim=latent_dim,
-            depth=Former_depth,
-            condition_dim=condition_dim,
-            dim_head=Former_dim_head,
-            heads=Former_heads,
-            num_latents=num_latents,
-            num_frame=num_frame,
-            num_time_embeds=Former_num_time_embeds,
-            use_temporal=use_Former_temporal,
-        )
+        self.use_video_former = use_video_former
+        if use_video_former:
+            self.Video_Former = Video_Former_3D(
+                dim=latent_dim,
+                depth=Former_depth,
+                condition_dim=condition_dim,
+                dim_head=Former_dim_head,
+                heads=Former_heads,
+                num_latents=num_latents,
+                num_frame=num_frame,
+                num_time_embeds=Former_num_time_embeds,
+                use_temporal=use_Former_temporal,
+            )
+            inner_obs_dim = latent_dim
+        else:
+            self.Video_Former = None
+            if obs_dim is None:
+                raise ValueError("use_video_former=False requires `obs_dim` (the motion_director's pixel_motion_feat feature dim).")
+            inner_obs_dim = obs_dim
+
         self.language_goal = LangClip(freeze_backbone=freeze_lang_encoder, model_name=lang_model_name)
 
         self.model = nn.Module()
         self.model.inner_model = DiffusionTransformer(
             action_dim=action_dim,
-            obs_dim=latent_dim,
+            obs_dim=inner_obs_dim,
             goal_dim=goal_dim,
             proprio_dim=proprio_dim,
             goal_conditioned=True,
@@ -150,14 +173,48 @@ class VPPCompatiblePolicy(BaseActionExpert):
             )
         return motion_feat
 
+    @staticmethod
+    def _materialize(t: torch.Tensor) -> torch.Tensor:
+        """Detach and, if needed, copy an inference-mode tensor into a normal one.
+
+        `motion_source="estimator"` flows through `PixelMotionEstimator.estimate_flow`
+        (decorated `@torch.inference_mode()`, see `dawn/models/pixel_motion/estimator.py`),
+        so `pixel_motion`/`pixel_motion_feat` arrive here as "inference tensors" --
+        using one directly in a training-mode forward pass poisons the whole
+        downstream graph and `loss.backward()` fails with "Inference tensors
+        cannot be saved for backward." Mirrors `edp2.py`'s own `_materialize`.
+        """
+        t = t.detach()
+        if t.is_inference():
+            t = torch.empty_like(t).copy_(t)
+        return t
+
+    def _get_pixel_motion_feat(
+        self,
+        encoder_outputs: Optional[Dict[str, Any]],
+    ) -> torch.Tensor:
+        pixel_motion_feat = None
+        if encoder_outputs is not None:
+            pixel_motion_feat = encoder_outputs.get("pixel_motion_feat")
+        if pixel_motion_feat is None:
+            raise ValueError(
+                "VPPCompatiblePolicy(use_video_former=False) requires a `pixel_motion_feat` "
+                "tensor in encoder_outputs (DAWNArch computes this automatically for any "
+                "motion_director exposing get_target_flow_rgb, e.g. LDM)."
+            )
+        return self._materialize(pixel_motion_feat)
+
     def encode_inputs(
         self,
         batch_data: Dict[str, Any],
         encoder_outputs: Optional[Dict[str, Any]] = None,
         motion_outputs: Optional[Dict[str, Any]] = None,
     ) -> Tuple[Dict[str, Any], torch.Tensor]:
-        motion_feat = self._get_motion_feat(batch_data, encoder_outputs, motion_outputs)
-        state_images = self.Video_Former(motion_feat.to(self.device))
+        if self.use_video_former:
+            motion_feat = self._get_motion_feat(batch_data, encoder_outputs, motion_outputs)
+            state_images = self.Video_Former(motion_feat.to(self.device))
+        else:
+            state_images = self._get_pixel_motion_feat(encoder_outputs).to(self.device)
 
         batch_size = state_images.shape[0]
         language = self._language_list(batch_data, batch_size)

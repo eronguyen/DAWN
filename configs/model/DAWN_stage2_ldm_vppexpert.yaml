@@ -1,0 +1,54 @@
+# Pairs DAWN's own, already-trained pixel-motion `LDM` motion_director with a
+# new action_expert that reuses VPP's DiffusionTransformer architecture
+# (VPPCompatiblePolicy with use_video_former=False): LDM's predicted flow-RGB
+# image is encoded by the shared `encoder` into `pixel_motion_feat`
+# (DAWNArch.forward() already does this automatically for any motion_director
+# exposing get_target_flow_rgb), which is fed directly into the transformer as
+# `state_images` -- no Video_Former/SVD backbone involved.
+#
+# Warm-start the action_expert from VPP's checkpoint with:
+#   python scripts/convert_vpp_pixel_motion_expert.py \
+#     --vpp-checkpoint <dp-calvin last.pt> --obs-dim 768 --out <out.pth>
+# which transfers 98.6% of model.inner_model (everything except tok_emb, whose
+# input dim depends on the upstream feature dim) plus all of language_goal.
+_target_: dawn.models.arch.dawn.DAWNArch
+
+stage: 2
+motion_source: estimator  # motion_director already trained; matches DAWN_stage2.yaml's own default
+use_predicted_motion_eval: false
+
+encoder:
+  _target_: dawn.models.encoder.Encoder
+  image_pretrained: "facebook/dinov3-convnext-small-pretrain-lvd1689m"
+  text_pretrained: "openai/clip-vit-large-patch14"
+
+motion_director:
+  _target_: dawn.models.motion_director.ldm.LDM
+  pretrained: timbrooks/instruct-pix2pix
+  num_inference_steps: 25
+  conditioning_mode: text+visual
+  flow_rgb_mode: hsv
+  guidance_scale: 1
+
+action_expert:
+  _target_: dawn.models.action_expert.vpp_edp.VPPCompatiblePolicy
+  use_video_former: false
+  obs_dim: 768  # facebook/dinov3-convnext-small-pretrain-lvd1689m's last_hidden_state feature dim
+  action_dim: 7
+  latent_dim: 384  # embed_dim; matches VPP's checkpoint so the transformer body transfers
+  goal_dim: 512  # LangClip (VPP's own ViT-B/32 CLIP) output dim
+  act_seq_len: 10
+  proprio_dim: 8
+  noise_scheduler: 'exponential'
+  sigma_sample_density_type: 'loglogistic'
+  sampler_type: 'ddim'
+  num_sampling_steps: 10
+  sigma_data: 0.5
+  # This is the *training*-time noise-sampling bound (also used for eval's DDIM
+  # schedule unless overridden) -- keep at VPP's own trained value here. Apply
+  # `++model.action_expert.sigma_min=1.0` only at eval/inference time, matching
+  # VPP's own eval-only override (see configs/model/DAWN_stage2_vpp.yaml's note).
+  sigma_min: 0.001
+  sigma_max: 80
+  lang_model_name: 'ViT-B/32'
+  freeze_lang_encoder: true
