@@ -1,0 +1,54 @@
+# Hosts VPP's own pretrained perception+policy pipeline (yjguo/dp-calvin)
+# inside DAWNArch: `motion_director` is a frozen SVD feature extractor and
+# `action_expert` is a Video-Former + diffusion-transformer policy that are
+# checkpoint-compatible with VPP, so the checkpoint can be loaded and run
+# with zero DAWN-side training (see scripts/convert_vpp_to_dawn_checkpoint.py).
+_target_: dawn.models.arch.dawn.DAWNArch
+
+stage: 2
+motion_source: predicted  # unused: SVDMotionExtractor is frozen, forward_train == forward_eval
+use_predicted_motion_eval: false
+
+encoder:
+  _target_: dawn.models.encoder.Encoder
+  image_pretrained: "facebook/dinov3-convnext-small-pretrain-lvd1689m"
+  text_pretrained: "openai/clip-vit-large-patch14"
+
+motion_director:
+  _target_: dawn.models.motion_director.svd_extractor.SVDMotionExtractor
+  pretrained_model_path: /mnt/localssd/.cache/huggingface/hub/models--yjguo--svd-robot-calvin-ft/snapshots/d7178b195d5f934f5d5b268e25fdf011f16b7bfb
+  text_encoder_path: /mnt/localssd/.cache/huggingface/hub/models--openai--clip-vit-base-patch32/snapshots/3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268
+  timestep: 20
+  extract_layer_idx: 1
+  use_all_layer: true
+  max_length: 20
+  position_encoding: true
+  num_time_embeds: 16
+  eval_dtype: true
+
+action_expert:
+  _target_: dawn.models.action_expert.vpp_edp.VPPCompatiblePolicy
+  action_dim: 7
+  latent_dim: 384
+  goal_dim: 512
+  num_latents: 224
+  num_frame: 16
+  Former_depth: 6
+  Former_heads: 8
+  Former_dim_head: 64
+  Former_num_time_embeds: 16
+  condition_dim: 2560
+  use_Former_temporal: true
+  goal_window_size: 1
+  obs_seq_len: 1
+  act_seq_len: 10
+  proprio_dim: 8
+  noise_scheduler: 'exponential'
+  sigma_sample_density_type: 'loglogistic'
+  sampler_type: 'ddim'
+  num_sampling_steps: 10
+  sigma_data: 0.5
+  sigma_min: 0.001
+  sigma_max: 80
+  lang_model_name: 'ViT-B/32'
+  freeze_lang_encoder: true

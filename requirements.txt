@@ -18,3 +18,6 @@ fvcore
 matplotlib
 wandb
 pytorch_lightning
+ftfy
+regex
+einops_exts

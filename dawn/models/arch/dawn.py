@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, Optional
 
 import torch
@@ -13,6 +14,44 @@ from dawn.models.encoder import Encoder
 from dawn.models.motion_director.base import BaseMotionDirector
 
 logger = getLogger(__name__)
+
+
+def _remap_legacy_motion_encoder_keys(state_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """Rename legacy custom-ViT motion_encoder params to HuggingFace ViTModel naming.
+
+    Older edp2 checkpoints stored the action_expert motion_encoder as a custom ViT
+    re-implementation ('...motion_encoder.layers.N.attention.{q,k,v,o}_proj',
+    '...mlp.fc1/fc2'). The current code builds a HF ViTModel via AutoModel, whose
+    params are named '...motion_encoder.encoder.layer.N.attention.attention.query',
+    'intermediate.dense', 'output.dense', etc. The two are architecturally identical
+    (ViT-base/16), so we can rename the keys and load the pretrained weights instead
+    of silently leaving that submodule randomly initialized.
+    """
+    sub_map = [
+        (".attention.q_proj.", ".attention.attention.query."),
+        (".attention.k_proj.", ".attention.attention.key."),
+        (".attention.v_proj.", ".attention.attention.value."),
+        (".attention.o_proj.", ".attention.output.dense."),
+        (".mlp.fc1.", ".intermediate.dense."),
+        (".mlp.fc2.", ".output.dense."),
+        # layernorm_before / layernorm_after keep the same name under encoder.layer.N
+    ]
+    layer_pat = re.compile(r"(motion_encoder)\.layers\.(\d+)\.")
+    remapped: Dict[str, Any] = {}
+    n = 0
+    for k, v in state_dict.items():
+        nk = k
+        if layer_pat.search(k):
+            nk = layer_pat.sub(r"\1.encoder.layer.\2.", k)
+            for old, new in sub_map:
+                if old in nk:
+                    nk = nk.replace(old, new)
+                    break
+            n += 1
+        remapped[nk] = v
+    if n:
+        logger.info("Remapped %d legacy motion_encoder keys to HuggingFace ViT naming", n)
+    return remapped
 
 class DAWNArch(nn.Module):
     """
@@ -60,7 +99,8 @@ class DAWNArch(nn.Module):
         if "model" in weights and weights["model"] is not None:
             logger.info("Loading model weights from %s", weights["model"])
             ckpt = torch.load(weights["model"], map_location="cpu")
-            
+            ckpt = _remap_legacy_motion_encoder_keys(ckpt)
+
             extra = {}
             for k, v in ckpt.items():
                 if k.startswith("encoder.image_proj") or k.startswith("encoder.motion"):
@@ -147,16 +187,31 @@ class DAWNArch(nn.Module):
         if self.action_expert is None:
             raise ValueError("Stage 2 requires `action_expert`.")
         
-        if self.motion_source == "predicted" or (self.use_predicted_motion_eval and not self.training):
+        if self.motion_director is not None and not hasattr(self.motion_director, "get_target_flow_rgb"):
+            # Frozen feature-extractor motion_director (e.g. SVDMotionExtractor):
+            # no pixel-space flow objective, so motion_source is a no-op here --
+            # forward_train/forward_eval both just run the same frozen extractor.
+            motion_outputs = self.motion_director(
+                batch_data,
+                encoder_outputs=outputs["encoder"],
+                **kwargs,
+            )
+            action_encoder_outputs = dict(outputs["encoder"])
+            action_encoder_outputs["motion_feat"] = motion_outputs["motion_feat"]
+
+        elif self.motion_source == "predicted" or (self.use_predicted_motion_eval and not self.training):
             if self.motion_director is None:
                 raise ValueError("motion_source='predicted' requires `motion_director`.")
-            
+
             motion_outputs = self.motion_director.forward_eval(
                 batch_data,
                 encoder_outputs=outputs["encoder"],
                 **kwargs,
             )
             pixel_motion = self._extract_pixel_motion(motion_outputs)
+            pixel_motion_feat = self.encoder.encode_image(pixel_motion)
+            action_encoder_outputs = dict(outputs["encoder"])
+            action_encoder_outputs["pixel_motion_feat"] = pixel_motion_feat
 
         elif self.motion_source == "estimator" or not self.use_predicted_motion_eval:
             if self.motion_director is None or not hasattr(self.motion_director, "get_target_flow_rgb"):
@@ -168,14 +223,11 @@ class DAWNArch(nn.Module):
                 "estimated_flow_rgb": pixel_motion,
                 "predicted_flow_rgb": pixel_motion,  # For visualization consistency
             }
+            pixel_motion_feat = self.encoder.encode_image(pixel_motion)
+            action_encoder_outputs = dict(outputs["encoder"])
+            action_encoder_outputs["pixel_motion_feat"] = pixel_motion_feat
         else:
             raise ValueError(f"Unsupported motion_source: {self.motion_source}")
-
-        pixel_motion_feat = self.encoder.encode_image(pixel_motion)
-        
-
-        action_encoder_outputs = dict(outputs["encoder"])
-        action_encoder_outputs["pixel_motion_feat"] = pixel_motion_feat
 
         outputs["motion"] = motion_outputs
         outputs["action"] = self.action_expert(
@@ -291,13 +343,13 @@ class DAWNArch(nn.Module):
         else:
             outputs = self.precalc_outputs
 
-        if visualize:
-            vis_image = self.motion_director.visualize(
+        if visualize and self.motion_director is not None and hasattr(self.motion_director, "visualize"):
+            vis_images = self.motion_director.visualize(
                 batch_data=data,
                 outputs=outputs["motion"],
                 predict_only=True,
-            )[0]
-            vis_image = np.array(vis_image)
+            )
+            vis_image = np.array(vis_images[0]) if vis_images else None
         else:
             vis_image = None
         # Use precalculated actions if available
