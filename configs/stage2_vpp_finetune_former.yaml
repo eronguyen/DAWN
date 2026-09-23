@@ -1,0 +1,50 @@
+defaults:
+  - _self_
+  - dataset: calvin
+  - model: DAWN_stage2_vpp_finetune_former
+
+project: DAWN-action-expert-vpp-finetune-former
+save_dir: ./outputs
+resume: false
+desc: vpp-finetune-former-bs128-skip10-lr1e-4-total20k
+debug: false
+seed: 0
+
+weights:
+  # Full VPP-transplant checkpoint (position_encoding-fixed): SVDMotionExtractor
+  # + Video_Former + frozen DiffusionTransformer + frozen LangClip, all loaded
+  # from the same checkpoint that already scored 4.7/5 on a CALVIN rollout
+  # smoke test with zero training.
+  model: /mnt/localssd/.cache/huggingface/dawn_vpp/dp_calvin_dawn_arch.pth
+  motion_director: null
+
+trainer:
+  accumulate: 1
+  # Only Video_Former (9.3% of action_expert's params, far smaller than the
+  # full 21.6M-param transformer body) is trainable, starting from an
+  # already-proven checkpoint rather than a fresh tok_emb -- expect much
+  # faster convergence than the LDM+VPPexpert hybrid, so a shorter run.
+  total_steps: 20000
+  log_interval: 20
+  save_interval: 500
+  val_interval: 250
+  save_dir: '${save_dir}/${project}/${desc}/${now:%Y-%m-%d_%H-%M}'
+  resume: ${resume}
+  lr_warmup_steps: 10
+
+accelerator:
+  gradient_accumulation_steps: ${trainer.accumulate}
+  mixed_precision: fp16
+  log_with: wandb
+  project_dir: ${trainer.save_dir}
+
+loader:
+  train_batch_size: 128
+  val_batch_size: 128
+  num_workers: 1
+
+optimizer:
+  _target_: 'torch.optim.AdamW'
+  lr: 1e-4
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
