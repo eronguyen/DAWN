@@ -93,11 +93,16 @@ def main() -> None:
         def fmt(t):
             return "[" + ", ".join(f"{x:+.3f}" for x in t.tolist()) + "]"
 
+        dawn_l1 = (dawn_pred - gt).abs().mean().item()
+        dawn_mse = (dawn_pred - gt).pow(2).mean().item()
+        vpp_l1 = (vpp_pred - gt).abs().mean().item()
+        vpp_mse = (vpp_pred - gt).pow(2).mean().item()
+
         print(f"\n=== sample {i} (idx={idx}) ===")
         print(f"language : {item['language']}")
         print(f"GT       : {fmt(gt)}")
-        print(f"DAWN     : {fmt(dawn_pred)}  |  L1 err: {(dawn_pred - gt).abs().mean().item():.4f}")
-        print(f"VPP      : {fmt(vpp_pred)}  |  L1 err: {(vpp_pred - gt).abs().mean().item():.4f}")
+        print(f"DAWN     : {fmt(dawn_pred)}  |  L1: {dawn_l1:.4f}  MSE: {dawn_mse:.4f}")
+        print(f"VPP      : {fmt(vpp_pred)}  |  L1: {vpp_l1:.4f}  MSE: {vpp_mse:.4f}")
 
         if i == 0:
             # Save a visual: input frame + DAWN's predicted motion (VPP has no
